@@ -354,7 +354,8 @@ export function ExchangeCalculatorUnified({
     return null
   }
 
-  const rate = getExchangeRate(selectedDirection, amount)
+  const rateRefAmount = amount && Number.parseFloat(amount) > 0 ? amount : "1000"
+  const rate = getExchangeRate(selectedDirection, rateRefAmount)
 
   const getPerUnitRateDisplay = () => {
     if (!selectedDirection || rate === null) return null
