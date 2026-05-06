@@ -11,11 +11,10 @@ export async function POST(request: Request) {
     const { fromCurrency, toCurrency, fromAmount, toAmount, rate, rateDisplay } = body
 
     const botToken = process.env.TELEGRAM_BOT_TOKEN
-    // Send to the operator's personal chat (when opened via WebApp), fallback to group
-    const chatId = body.telegramUserId ? String(body.telegramUserId) : process.env.TELEGRAM_GROUP_ID
+    const chatId = body.telegramUserId ? String(body.telegramUserId) : null
 
     if (!botToken || !chatId) {
-      return NextResponse.json({ error: "Telegram не настроен" }, { status: 400 })
+      return NextResponse.json({ error: "Доступно только через Telegram бот" }, { status: 400 })
     }
 
     const now = new Date().toLocaleString("ru-RU", {
