@@ -33,6 +33,6 @@ export const montenegroConfig: LocationConfig = {
     { id: "rub-usdt", from: "RUB", to: "USDT", name: "RUB → USDT", banks: [] },
   ],
   googleSheetId: "116zy1j648bV0xev1l5GJ_5QuYYaN9wo9twIeSq2uPyk",
-  botUsername: "me_changebot",
+  botUsername: "monchange_bot",
   timezone: "Europe/Podgorica",
 }
