@@ -56,7 +56,7 @@ export async function POST(request: Request) {
       },
       body: JSON.stringify({
         date,                                    // A: Дата заявки
-        clientNick: clientContact,               // B: Ник клиента
+        client: clientContact,                   // B: Ник клиента
         direction,                               // C: Направление (USDT-EUR, RUB-EUR, etc.)
         incomingAmount: Number(fromAmount),      // E: Приход фактический (число)
         incomingCurrency: fromCurrency,          // F: Валюта прихода
