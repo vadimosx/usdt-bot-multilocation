@@ -137,7 +137,7 @@ export async function POST(request: Request) {
           {
             reply_markup: {
               inline_keyboard: [[
-                { text: "💱 Открыть калькулятор", web_app: { url: `https://t.me/${activeLocation.botUsername}/app` } }
+                { text: "💱 Открыть калькулятор", url: `https://t.me/${activeLocation.botUsername}/app` }
               ]]
             }
           }
@@ -163,7 +163,7 @@ export async function POST(request: Request) {
           {
             reply_markup: {
               inline_keyboard: [[
-                { text: "💱 Открыть калькулятор", web_app: { url: `https://t.me/${activeLocation.botUsername}/app` } }
+                { text: "💱 Открыть калькулятор", url: `https://t.me/${activeLocation.botUsername}/app` }
               ]]
             }
           }
@@ -189,7 +189,7 @@ export async function POST(request: Request) {
 
       // Build reply keyboard
       const keyboard: any[][] = [[
-        { text: "💱 Открыть калькулятор", web_app: { url: `https://t.me/${activeLocation.botUsername}/app` } }
+        { text: "💱 Открыть калькулятор", url: `https://t.me/${activeLocation.botUsername}/app` }
       ]]
 
       if (needsOperator && operatorUsername) {
