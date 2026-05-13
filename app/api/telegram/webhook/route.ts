@@ -138,7 +138,7 @@ export async function POST(request: Request) {
       // /start command
       if (text === "/start") {
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || `https://app.usdtman.com`
-        const welcomeGif = `${appUrl}/images/welcome.gif`
+        const welcomeGif = `${appUrl}/images/welcome.mp4`
         const welcomeText =
           `👋 Привет, <b>${escapeHtml(firstName)}</b>!\n\n` +
           `Я помощник обменника <b>USDT Man ${activeLocation.name}</b>.\n\n` +
