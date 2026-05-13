@@ -1,16 +1,91 @@
 import { NextResponse } from "next/server"
+import Anthropic from "@anthropic-ai/sdk"
+import { activeLocation } from "@/config/locations"
+
+const anthropic = new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY,
+})
+
+function escapeHtml(text = "") {
+  return String(text).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+}
+
+async function sendMessage(botToken: string, chatId: number | string, text: string, extra?: object) {
+  await fetch(`https://api.telegram.org/bot${botToken}/sendMessage`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, text, parse_mode: "HTML", ...extra }),
+  })
+}
+
+async function sendChatAction(botToken: string, chatId: number | string) {
+  await fetch(`https://api.telegram.org/bot${botToken}/sendChatAction`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, action: "typing" }),
+  })
+}
+
+function getSystemPrompt(): string {
+  const location = activeLocation.name
+  const cities = activeLocation.cities.map((c) => c.name).join(", ")
+  const botUsername = activeLocation.botUsername
+
+  return `Ты — вежливый помощник обменного пункта USDT Man (${location}).
+Отвечай кратко, по делу, на том языке на котором пишет пользователь (русский или английский).
+
+ИНФОРМАЦИЯ ОБ ОБМЕННИКЕ:
+- Локация: ${location}
+- Города: ${cities}
+- Минимальная сумма: 300 EUR (или эквивалент)
+- Режим работы: 8:00 — 22:00
+- Валюты: ${activeLocation.currencies.map((c) => c.label).join(", ")}
+- Направления обмена: ${activeLocation.exchangeDirections.map((d) => d.name).join(", ")}
+
+КАК РАБОТАЕТ ОБМЕН:
+- Личная встреча — вы сами видите деньги, можете пересчитать
+- Никакой предоплаты — сначала вы переводите криптовалюту, сразу получаете наличные евро
+- Доставка за город возможна, стоимость обсуждается отдельно в зависимости от локации
+
+КОМИССИИ:
+- Комиссия уже включена в курс, никаких дополнительных комиссий
+- Актуальный курс всегда в боте @${botUsername}
+
+ПРАВИЛА ОТВЕТОВ:
+1. Если пользователь хочет узнать курс или сделать обмен — скажи что курс доступен в калькуляторе и предложи открыть его
+2. Если вопрос не относится к обменнику — вежливо скажи что можешь помочь только по теме обмена валют
+3. Если вопрос сложный, нестандартный, или пользователь явно просит оператора — в конце ответа добавь строго: [НУЖЕН_ОПЕРАТОР]
+4. Никогда не выдумывай курсы — говори что актуальный курс в калькуляторе
+5. Будь дружелюбным, отвечай коротко (2-4 предложения максимум)`
+}
+
+async function askClaude(userMessage: string): Promise<{ text: string; needsOperator: boolean }> {
+  const response = await anthropic.messages.create({
+    model: "claude-haiku-4-5",
+    max_tokens: 300,
+    system: getSystemPrompt(),
+    messages: [{ role: "user", content: userMessage }],
+  })
+
+  const text = response.content[0].type === "text" ? response.content[0].text : ""
+  const needsOperator = text.includes("[НУЖЕН_ОПЕРАТОР]")
+  const cleanText = text.replace("[НУЖЕН_ОПЕРАТОР]", "").trim()
+
+  return { text: cleanText, needsOperator }
+}
 
 export async function POST(request: Request) {
   try {
     const botToken = process.env.TELEGRAM_BOT_TOKEN
+    const groupId = process.env.TELEGRAM_GROUP_ID
+    const operatorUsername = process.env.TELEGRAM_OPERATOR_USERNAME
 
     if (!botToken) {
-      console.log("[v0] Telegram bot token not configured")
       return NextResponse.json({ error: "Bot token not configured" }, { status: 400 })
     }
 
     const update = await request.json()
-    console.log("[v0] Telegram webhook received:", JSON.stringify(update, null, 2))
+    console.log("[webhook] update type:", Object.keys(update).filter(k => k !== "update_id").join(", "))
 
     // Handle inline query
     if (update.inline_query) {
@@ -18,224 +93,143 @@ export async function POST(request: Request) {
       const queryText = inlineQuery.query.trim()
       const queryId = inlineQuery.id
 
-      console.log("[v0] Inline query:", queryText)
-
-      // Parse query: "100 EUR RUB" or "500 RUB EUR"
-      const match = queryText.match(/^(\d+(?:[.,]\d+)?)\s*(EUR|RUB|USDT)\s*(EUR|RUB|USDT)?$/i)
+      const match = queryText.match(/^(\d+(?:[.,]\d+)?)\s*(EUR|RUB|USDT|RSD)\s*(EUR|RUB|USDT|RSD)?$/i)
 
       if (!match) {
-        // Show help message if format is wrong
-        const results = [
-          {
-            type: "article",
-            id: "help",
-            title: "Формат: 100 EUR RUB",
-            description: "Введите сумму и валюты, например: 100 EUR RUB или 500 USDT EUR",
-            input_message_content: {
-              message_text:
-                "Калькулятор обмена валют\n\nФормат: сумма ВАЛЮТА_ИЗ ВАЛЮТА_В\nПример: 100 EUR RUB\n\nПоддерживаемые валюты: EUR, RUB, USDT",
-            },
-          },
-        ]
-
-        await answerInlineQuery(botToken, queryId, results)
+        await answerInlineQuery(botToken, queryId, [{
+          type: "article",
+          id: "help",
+          title: "Формат: 100 USDT EUR",
+          description: "Введите сумму и валюты, например: 500 USDT EUR",
+          input_message_content: { message_text: "Откройте калькулятор обмена в боте @" + activeLocation.botUsername },
+        }])
         return NextResponse.json({ ok: true })
       }
 
-      const amount = parseFloat(match[1].replace(",", "."))
-      const fromCurrency = match[2].toUpperCase()
-      const toCurrency = match[3]?.toUpperCase() || (fromCurrency === "EUR" ? "RUB" : "EUR")
+      await answerInlineQuery(botToken, queryId, [{
+        type: "article",
+        id: "calc",
+        title: "Открыть калькулятор",
+        description: "Актуальный курс в нашем боте",
+        input_message_content: { message_text: `Актуальный курс и калькулятор обмена: @${activeLocation.botUsername}` },
+      }])
+      return NextResponse.json({ ok: true })
+    }
 
-      if (fromCurrency === toCurrency) {
-        const results = [
+    // Handle text messages
+    if (update.message) {
+      const message = update.message
+      const chatId = message.chat.id
+      const text = message.text || ""
+      const username = message.from?.username || ""
+      const firstName = message.from?.first_name || "Пользователь"
+
+      // /start command
+      if (text === "/start") {
+        const webAppUrl = `https://t.me/${activeLocation.botUsername}/app`
+        await sendMessage(botToken, chatId,
+          `👋 Привет, <b>${escapeHtml(firstName)}</b>!\n\n` +
+          `Я помощник обменника <b>USDT Man ${activeLocation.name}</b>.\n\n` +
+          `💱 Обмен USDT, EUR${activeLocation.currencies.find(c => c.value === "RUB") ? ", RUB" : ""} наличными\n` +
+          `📍 Города: ${activeLocation.cities.map(c => c.name).join(", ")}\n` +
+          `⏰ Работаем: 8:00 — 22:00\n\n` +
+          `Задайте любой вопрос или откройте калькулятор 👇`,
           {
-            type: "article",
-            id: "error",
-            title: "Ошибка: одинаковые валюты",
-            description: "Выберите разные валюты для обмена",
-            input_message_content: {
-              message_text: "Ошибка: нельзя обменять валюту на саму себя",
-            },
-          },
-        ]
-        await answerInlineQuery(botToken, queryId, results)
-        return NextResponse.json({ ok: true })
-      }
-
-      // Fetch current rates
-      const ratesResponse = await fetch("https://app.usdtman.com/api/rub-rate")
-      const ratesData = await ratesResponse.json()
-
-      // Fetch Binance rate for USDT/EUR
-      let binanceRate = 0.92 // fallback
-      try {
-        const binanceResponse = await fetch(
-          "https://api.binance.com/api/v3/ticker/price?symbol=EURUSDT"
+            reply_markup: {
+              inline_keyboard: [[
+                { text: "💱 Открыть калькулятор", web_app: { url: `https://t.me/${activeLocation.botUsername}/app` } }
+              ]]
+            }
+          }
         )
-        const binanceData = await binanceResponse.json()
-        if (binanceData.price) {
-          binanceRate = 1 / parseFloat(binanceData.price) // USDT per EUR -> EUR per USDT
-        }
-      } catch (e) {
-        console.log("[v0] Binance fetch error, using fallback")
+        return NextResponse.json({ ok: true })
       }
 
-      // Calculate exchange
-      const result = calculateExchange(
-        fromCurrency,
-        toCurrency,
-        amount,
-        ratesData.rubRate || 97,
-        binanceRate,
-        ratesData.fixUsdEurRate,
-        ratesData.usdtEurTiers || [],
-        ratesData.rubEurTiers || []
-      )
+      // Skip non-text messages
+      if (!text || text.startsWith("/")) {
+        return NextResponse.json({ ok: true })
+      }
 
-      const date = new Date().toLocaleDateString("ru-RU", { timeZone: "Europe/Belgrade" })
-      const time = new Date().toLocaleTimeString("ru-RU", {
-        timeZone: "Europe/Belgrade",
-        hour: "2-digit",
-        minute: "2-digit",
+      // Show typing indicator
+      await sendChatAction(botToken, chatId)
+
+      // No API key — fallback to simple response
+      if (!process.env.ANTHROPIC_API_KEY) {
+        const operatorContact = operatorUsername ? `@${operatorUsername}` : "оператора"
+        await sendMessage(botToken, chatId,
+          `Для ответа на ваш вопрос свяжитесь с оператором: ${operatorContact}`,
+          {
+            reply_markup: {
+              inline_keyboard: [[
+                { text: "💱 Открыть калькулятор", web_app: { url: `https://t.me/${activeLocation.botUsername}/app` } }
+              ]]
+            }
+          }
+        )
+        return NextResponse.json({ ok: true })
+      }
+
+      // Ask Claude
+      let aiReply: string
+      let needsOperator = false
+
+      try {
+        const result = await askClaude(text)
+        aiReply = result.text
+        needsOperator = result.needsOperator
+      } catch (err) {
+        console.error("[webhook] Claude error:", err)
+        aiReply = "Извините, не могу ответить прямо сейчас. Обратитесь к оператору."
+        needsOperator = true
+      }
+
+      // Build reply keyboard
+      const keyboard: any[][] = [[
+        { text: "💱 Открыть калькулятор", web_app: { url: `https://t.me/${activeLocation.botUsername}/app` } }
+      ]]
+
+      if (needsOperator && operatorUsername) {
+        keyboard.push([{ text: `👤 Написать оператору`, url: `https://t.me/${operatorUsername}` }])
+      }
+
+      await sendMessage(botToken, chatId, aiReply, {
+        reply_markup: { inline_keyboard: keyboard }
       })
 
-      const messageText =
-        `💱 <b>Расчет обмена</b>\n\n` +
-        `💰 ${formatNumber(amount)} ${fromCurrency} = <b>${formatNumber(result.toAmount)} ${toCurrency}</b>\n` +
-        `📊 Курс: ${formatNumber(result.rate)} ${toCurrency}/${fromCurrency}\n\n` +
-        `📅 Актуально на ${date} в ${time}\n` +
-        `🔗 Проверить курс: @rs_changebot`
+      // Ping group if operator needed
+      if (needsOperator && groupId) {
+        const userLink = username
+          ? `<a href="https://t.me/${username}">@${escapeHtml(username)}</a>`
+          : `<a href="tg://user?id=${chatId}">${escapeHtml(firstName)}</a>`
 
-      const results = [
-        {
-          type: "article",
-          id: `calc_${Date.now()}`,
-          title: `${formatNumber(amount)} ${fromCurrency} = ${formatNumber(result.toAmount)} ${toCurrency}`,
-          description: `Курс: ${formatNumber(result.rate)} ${toCurrency}/${fromCurrency}`,
-          input_message_content: {
-            message_text: messageText,
-            parse_mode: "HTML",
-          },
-        },
-      ]
+        await sendMessage(botToken, groupId,
+          `🙋 <b>Пользователь просит оператора</b>\n\n` +
+          `👤 ${userLink}\n` +
+          `💬 Вопрос: <i>${escapeHtml(text)}</i>`
+        )
+      }
 
-      await answerInlineQuery(botToken, queryId, results)
       return NextResponse.json({ ok: true })
     }
 
     return NextResponse.json({ ok: true })
   } catch (error: any) {
-    console.log("[v0] Webhook error:", error)
+    console.error("[webhook] error:", error)
     return NextResponse.json({ error: error?.message || String(error) }, { status: 500 })
   }
 }
 
 async function answerInlineQuery(botToken: string, queryId: string, results: any[]) {
-  const response = await fetch(`https://api.telegram.org/bot${botToken}/answerInlineQuery`, {
+  await fetch(`https://api.telegram.org/bot${botToken}/answerInlineQuery`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      inline_query_id: queryId,
-      results,
-      cache_time: 10, // Cache for 10 seconds
-    }),
+    body: JSON.stringify({ inline_query_id: queryId, results, cache_time: 10 }),
   })
-
-  const data = await response.json()
-  console.log("[v0] answerInlineQuery response:", JSON.stringify(data, null, 2))
-  return data
-}
-
-function formatNumber(num: number): string {
-  return num.toLocaleString("ru-RU", {
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  })
-}
-
-interface MarginTier {
-  min: number
-  max: number
-  margin: number
-}
-
-function getMarginForAmount(amount: number, tiers: MarginTier[]): number {
-  if (!tiers || tiers.length === 0) return 0
-
-  for (const tier of tiers) {
-    if (amount >= tier.min && amount <= tier.max) {
-      return tier.margin
-    }
-  }
-
-  // If amount is larger than all tiers, use the last tier's margin
-  const sortedTiers = [...tiers].sort((a, b) => b.max - a.max)
-  return sortedTiers[0]?.margin || 0
-}
-
-function calculateExchange(
-  fromCurrency: string,
-  toCurrency: string,
-  amount: number,
-  rubRate: number,
-  binanceRate: number,
-  fixUsdEurRate: number | null,
-  usdtEurTiers: MarginTier[],
-  rubEurTiers: MarginTier[]
-): { toAmount: number; rate: number } {
-  let toAmount = 0
-  let rate = 0
-
-  // USDT -> EUR
-  if (fromCurrency === "USDT" && toCurrency === "EUR") {
-    const baseRate = fixUsdEurRate || binanceRate
-    const margin = getMarginForAmount(amount, usdtEurTiers)
-    rate = baseRate * (1 - margin / 100)
-    toAmount = amount * rate
-  }
-  // EUR -> USDT
-  else if (fromCurrency === "EUR" && toCurrency === "USDT") {
-    const baseRate = fixUsdEurRate || binanceRate
-    const margin = getMarginForAmount(amount, usdtEurTiers)
-    rate = 1 / (baseRate * (1 + margin / 100))
-    toAmount = amount * rate
-  }
-  // RUB -> EUR
-  else if (fromCurrency === "RUB" && toCurrency === "EUR") {
-    const margin = getMarginForAmount(amount / rubRate, rubEurTiers) // Convert to EUR for tier lookup
-    rate = 1 / (rubRate * (1 + margin / 100))
-    toAmount = amount * rate
-  }
-  // EUR -> RUB
-  else if (fromCurrency === "EUR" && toCurrency === "RUB") {
-    const margin = getMarginForAmount(amount, rubEurTiers)
-    rate = rubRate * (1 - margin / 100)
-    toAmount = amount * rate
-  }
-  // USDT -> RUB (via EUR)
-  else if (fromCurrency === "USDT" && toCurrency === "RUB") {
-    const usdtEurRate = fixUsdEurRate || binanceRate
-    const eurAmount = amount * usdtEurRate
-    const margin = getMarginForAmount(eurAmount, rubEurTiers)
-    rate = usdtEurRate * rubRate * (1 - margin / 100)
-    toAmount = amount * rate
-  }
-  // RUB -> USDT (via EUR)
-  else if (fromCurrency === "RUB" && toCurrency === "USDT") {
-    const usdtEurRate = fixUsdEurRate || binanceRate
-    const eurAmount = amount / rubRate
-    const margin = getMarginForAmount(eurAmount, usdtEurTiers)
-    rate = 1 / (rubRate * usdtEurRate * (1 + margin / 100))
-    toAmount = amount * rate
-  }
-
-  return { toAmount, rate }
 }
 
 // GET endpoint to set webhook
 export async function GET(request: Request) {
   const botToken = process.env.TELEGRAM_BOT_TOKEN
-
   if (!botToken) {
     return NextResponse.json({ error: "Bot token not configured" }, { status: 400 })
   }
@@ -248,16 +242,10 @@ export async function GET(request: Request) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
       url: webhookUrl,
-      allowed_updates: ["inline_query"],
+      allowed_updates: ["message", "inline_query"],
     }),
   })
 
   const data = await response.json()
-  console.log("[v0] setWebhook response:", JSON.stringify(data, null, 2))
-
-  return NextResponse.json({
-    message: "Webhook setup attempted",
-    webhookUrl,
-    telegramResponse: data,
-  })
+  return NextResponse.json({ webhookUrl, telegramResponse: data })
 }
