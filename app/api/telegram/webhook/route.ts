@@ -234,8 +234,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "Bot token not configured" }, { status: 400 })
   }
 
-  const url = new URL(request.url)
-  const webhookUrl = `${url.origin}/api/telegram/webhook`
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL || new URL(request.url).origin
+  const webhookUrl = `${appUrl}/api/telegram/webhook`
 
   const response = await fetch(`https://api.telegram.org/bot${botToken}/setWebhook`, {
     method: "POST",
