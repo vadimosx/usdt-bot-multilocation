@@ -152,9 +152,11 @@ export async function POST(request: Request) {
 
       // Show typing indicator
       await sendChatAction(botToken, chatId)
+      console.log("[webhook] typing sent, chatId:", chatId)
 
       // No API key — fallback to simple response
       if (!process.env.ANTHROPIC_API_KEY) {
+        console.log("[webhook] no API key")
         const operatorContact = operatorUsername ? `@${operatorUsername}` : "оператора"
         await sendMessage(botToken, chatId,
           `Для ответа на ваш вопрос свяжитесь с оператором: ${operatorContact}`,
@@ -173,10 +175,12 @@ export async function POST(request: Request) {
       let aiReply: string
       let needsOperator = false
 
+      console.log("[webhook] calling Claude...")
       try {
         const result = await askClaude(text)
         aiReply = result.text
         needsOperator = result.needsOperator
+        console.log("[webhook] Claude replied, needsOperator:", needsOperator)
       } catch (err) {
         console.error("[webhook] Claude error:", err)
         aiReply = "Извините, не могу ответить прямо сейчас. Обратитесь к оператору."
@@ -192,9 +196,11 @@ export async function POST(request: Request) {
         keyboard.push([{ text: `👤 Написать оператору`, url: `https://t.me/${operatorUsername}` }])
       }
 
+      console.log("[webhook] sending reply to chatId:", chatId)
       await sendMessage(botToken, chatId, aiReply, {
         reply_markup: { inline_keyboard: keyboard }
       })
+      console.log("[webhook] reply sent")
 
       // Ping group if operator needed
       if (needsOperator && groupId) {
