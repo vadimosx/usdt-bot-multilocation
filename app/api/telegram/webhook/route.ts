@@ -19,11 +19,14 @@ async function sendMessage(botToken: string, chatId: number | string, text: stri
 }
 
 async function sendAnimation(botToken: string, chatId: number | string, animationUrl: string, caption?: string, extra?: object) {
-  await fetch(`https://api.telegram.org/bot${botToken}/sendAnimation`, {
+  const res = await fetch(`https://api.telegram.org/bot${botToken}/sendAnimation`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ chat_id: chatId, animation: animationUrl, caption, parse_mode: "HTML", ...extra }),
   })
+  const data = await res.json()
+  console.log("[webhook] sendAnimation response:", JSON.stringify(data).substring(0, 200))
+  return data
 }
 
 async function sendChatAction(botToken: string, chatId: number | string) {
