@@ -135,6 +135,8 @@ export async function POST(request: Request) {
       const username = message.from?.username || ""
       const firstName = message.from?.first_name || "Пользователь"
 
+      console.log("[webhook] message text:", JSON.stringify(text))
+
       // /start command
       if (text === "/start") {
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || `https://app.usdtman.com`
