@@ -18,6 +18,14 @@ async function sendMessage(botToken: string, chatId: number | string, text: stri
   })
 }
 
+async function sendAnimation(botToken: string, chatId: number | string, animationUrl: string, caption?: string, extra?: object) {
+  await fetch(`https://api.telegram.org/bot${botToken}/sendAnimation`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ chat_id: chatId, animation: animationUrl, caption, parse_mode: "HTML", ...extra }),
+  })
+}
+
 async function sendChatAction(botToken: string, chatId: number | string) {
   await fetch(`https://api.telegram.org/bot${botToken}/sendChatAction`, {
     method: "POST",
@@ -126,22 +134,23 @@ export async function POST(request: Request) {
 
       // /start command
       if (text === "/start") {
-        const webAppUrl = `https://t.me/${activeLocation.botUsername}/app`
-        await sendMessage(botToken, chatId,
+        const appUrl = process.env.NEXT_PUBLIC_APP_URL || `https://app.usdtman.com`
+        const welcomeGif = `${appUrl}/images/welcome.gif`
+        const welcomeText =
           `👋 Привет, <b>${escapeHtml(firstName)}</b>!\n\n` +
           `Я помощник обменника <b>USDT Man ${activeLocation.name}</b>.\n\n` +
           `💱 Обмен USDT, EUR${activeLocation.currencies.find(c => c.value === "RUB") ? ", RUB" : ""} наличными\n` +
           `📍 Города: ${activeLocation.cities.map(c => c.name).join(", ")}\n` +
           `⏰ Работаем: 8:00 — 22:00\n\n` +
-          `Задайте любой вопрос или откройте калькулятор 👇`,
-          {
-            reply_markup: {
-              inline_keyboard: [[
-                { text: "💱 Открыть калькулятор", web_app: { url: process.env.NEXT_PUBLIC_APP_URL || `https://app.usdtman.com` } }
-              ]]
-            }
+          `Задайте любой вопрос или откройте калькулятор 👇`
+        const keyboard = {
+          reply_markup: {
+            inline_keyboard: [[
+              { text: "💱 Открыть калькулятор", web_app: { url: appUrl } }
+            ]]
           }
-        )
+        }
+        await sendAnimation(botToken, chatId, welcomeGif, welcomeText, keyboard)
         return NextResponse.json({ ok: true })
       }
 
