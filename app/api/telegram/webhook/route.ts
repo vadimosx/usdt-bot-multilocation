@@ -153,7 +153,12 @@ export async function POST(request: Request) {
             ]]
           }
         }
-        await sendAnimation(botToken, chatId, welcomeGif, welcomeText, keyboard)
+        console.log("[webhook] sending start to", chatId, "gif:", welcomeGif)
+        const animResult = await sendAnimation(botToken, chatId, welcomeGif, welcomeText, keyboard)
+        if (!animResult?.ok) {
+          console.log("[webhook] animation failed, sending text fallback")
+          await sendMessage(botToken, chatId, welcomeText, keyboard)
+        }
         return NextResponse.json({ ok: true })
       }
 
