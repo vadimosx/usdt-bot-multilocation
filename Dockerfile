@@ -2,21 +2,21 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# Устанавливаем pnpm
-RUN corepack enable && corepack prepare pnpm@latest --activate
+ENV NEXT_TELEMETRY_DISABLED=1
+ENV NODE_OPTIONS="--max-old-space-size=1536"
 
-# Копируем package.json и pnpm-lock.yaml
-COPY package.json pnpm-lock.yaml* ./
+# Копируем package.json
+COPY package.json ./
 
-# Устанавливаем зависимости
-RUN pnpm install --no-frozen-lockfile
+# Устанавливаем зависимости через npm
+RUN npm install --legacy-peer-deps
 
 # Копируем остальной код
 COPY . .
 
 # Собираем проект
-RUN pnpm run build
+RUN npm run build
 
 EXPOSE 3000
 
-CMD ["pnpm", "start"]
+CMD ["npm", "start"]
