@@ -398,21 +398,13 @@ export function ExchangeCalculatorUnified({
     if (lastEdited === "from" && amount) {
       const calculated =
         rate !== null
-          ? (Number.parseFloat(amount) * rate).toFixed(
-              selectedDirection === "usdt-eur" || selectedDirection === "eur-usdt" || selectedDirection === "rsd-usdt"
-                ? 4
-                : 2,
-            )
+          ? (Number.parseFloat(amount) * rate).toFixed(1)
           : "0"
       setToAmount(calculated)
     } else if (lastEdited === "to" && toAmount) {
       const calculated =
         rate !== null
-          ? (Number.parseFloat(toAmount) / rate).toFixed(
-              selectedDirection === "usdt-eur" || selectedDirection === "eur-usdt" || selectedDirection === "rsd-usdt"
-                ? 4
-                : 2,
-            )
+          ? (Number.parseFloat(toAmount) / rate).toFixed(1)
           : "0"
       setAmount(calculated)
     }
