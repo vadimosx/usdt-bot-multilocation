@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useRef, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
@@ -16,6 +16,27 @@ export default function USDTManApp() {
   const [showOrders, setShowOrders] = useState(false)
   const [showAdmin, setShowAdmin] = useState(false)
   const [selectedCity, setSelectedCity] = useState(activeLocation.defaultCity)
+  const calculatorRef = useRef<HTMLDivElement>(null)
+
+  const scrollToCalculator = () => {
+    calculatorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" })
+  }
+
+  // Scroll focused input into view when keyboard appears
+  useEffect(() => {
+    const viewport = window.visualViewport
+    if (!viewport) return
+    const handleResize = () => {
+      const focused = document.activeElement as HTMLElement
+      if (focused && focused.tagName !== "BODY" && focused.tagName !== "HTML") {
+        setTimeout(() => {
+          focused.scrollIntoView({ behavior: "smooth", block: "center" })
+        }, 100)
+      }
+    }
+    viewport.addEventListener("resize", handleResize)
+    return () => viewport.removeEventListener("resize", handleResize)
+  }, [])
 
   return (
     <div
@@ -45,7 +66,7 @@ export default function USDTManApp() {
           </div>
         </div>
 
-        <div className="relative h-[380px] overflow-hidden">
+        <div className="relative h-[420px] overflow-hidden">
           <div className="absolute top-0 left-1/2 transform -translate-x-1/2 z-10">
             <h1 className="text-3xl font-bold text-white text-center whitespace-nowrap">USDT MAN</h1>
           </div>
@@ -56,8 +77,14 @@ export default function USDTManApp() {
             className="w-[375px] h-[375px] mx-auto object-contain drop-shadow-2xl green-glow -mt-8"
           />
 
-          <div className="absolute bottom-15 left-1/2 transform -translate-x-1/2 z-10">
+          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10 flex flex-col items-center gap-2">
             <p className="text-lg text-green-400 text-center whitespace-nowrap">{activeLocation.subtitle}</p>
+            <button
+              onClick={scrollToCalculator}
+              className="px-5 py-2 bg-green-500/20 border border-green-500/50 rounded-full text-green-400 text-sm backdrop-blur-sm hover:bg-green-500/30 active:scale-95 transition-all whitespace-nowrap"
+            >
+              💱 Перейти к калькулятору
+            </button>
           </div>
         </div>
 
@@ -73,7 +100,7 @@ export default function USDTManApp() {
           </div>
         </div>
 
-        <div className="px-4 pb-6">
+        <div className="px-4 pb-6" ref={calculatorRef}>
           <ExchangeCalculatorUnified
             onOrderCreate={() => setOrderCount((prev) => prev + 1)}
             selectedCity={selectedCity}
