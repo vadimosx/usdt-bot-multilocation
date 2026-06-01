@@ -120,9 +120,19 @@ export async function GET() {
       return { eur, rub: parseFloat(rub.toFixed(1)), rate: parseFloat((rub / eur).toFixed(2)) }
     })
 
-    // Spot rates for 1000 USDT / 1000 EUR
+    // RUB → EUR (via RUB/rubRate=USDT→EUR, same as calculator rub-eur direction)
+    const rubAmounts = [30000, 50000, 100000, 200000, 500000, 1000000]
+    const rubEurTable = rubAmounts.map((rub) => {
+      const usdt = rub / rubRate
+      const eur = convertUsdtToEur(usdt, effectiveRate, usdtTiers)
+      return { rub, eur: parseFloat(eur.toFixed(1)), rate: parseFloat((rub / eur).toFixed(2)) }
+    })
+
+    // Spot rates
     const spot1000Eur = convertUsdtToEur(1000, effectiveRate, usdtTiers)
     const spotRubFor1000Eur = convertEurToUsdt(1000, effectiveRate, usdtTiers) * rubRate
+    // RUB→EUR spot: 100000 RUB
+    const spot100kRubToEur = convertUsdtToEur(100000 / rubRate, effectiveRate, usdtTiers)
 
     return NextResponse.json({
       location: activeLocation.name,
@@ -130,16 +140,18 @@ export async function GET() {
       rate_source: fixRate ? "fix" : "binance",
       binance_rate: parseFloat(binanceRate.toFixed(4)),
 
-      // Spot rates (for 1000 units)
+      // Spot rates
       rates: {
-        usdt_eur: parseFloat((spot1000Eur / 1000).toFixed(4)),     // 1 USDT = X EUR
-        eur_rub: parseFloat((spotRubFor1000Eur / 1000).toFixed(2)), // 1 EUR = X RUB
+        usdt_eur: parseFloat((spot1000Eur / 1000).toFixed(4)),        // 1 USDT = X EUR (для 1000 USDT)
+        eur_rub: parseFloat((spotRubFor1000Eur / 1000).toFixed(2)),   // 1 EUR = X RUB (EUR→RUB, для 1000 EUR)
+        rub_eur: parseFloat((100000 / spot100kRubToEur).toFixed(2)),  // 1 EUR = X RUB (RUB→EUR, для 100k RUB)
         eur_rsd: rsdRate > 0 ? parseFloat(rsdRate.toFixed(2)) : null,
       },
 
       // Detailed tables
       usdt_to_eur: usdtEurTable,
       eur_to_rub: eurRubTable,
+      rub_to_eur: rubEurTable,
     })
   } catch (err: any) {
     console.error("[rates] error:", err)
