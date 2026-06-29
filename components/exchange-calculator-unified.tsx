@@ -273,9 +273,11 @@ export function ExchangeCalculatorUnified({
     const shouldAddBuyback = rateSource !== "fix"
 
     if (selectedDirection === "eur-usdt" && realUsdEurRate) {
-      // EUR → USDT using unified helper
+      // EUR → USDT: raw Binance rate (no buyback), then deduct tier margin
       const eurAmount = Number.parseFloat(amount) || 0
-      const usdtAmount = convertEurToUsdt(eurAmount)
+      const usdtBeforeMargin = eurAmount / realUsdEurRate
+      const margin = getUsdtMargin(eurAmount)
+      const usdtAmount = usdtBeforeMargin * (1 - margin)
       return usdtAmount / eurAmount
     } else if (selectedDirection === "usdt-eur" && realUsdEurRate) {
       const usdtAmount = Number.parseFloat(amount) || 0
@@ -289,9 +291,11 @@ export function ExchangeCalculatorUnified({
         const eurAmount = convertUsdtToEur(usdtAmount)
         return eurAmount / rubAmount
       } else {
-        // EUR → RUB: EUR → USDT, then USDT * rubRate = RUB
+        // EUR → RUB: EUR → USDT (raw Binance rate, no buyback, deduct margin), then USDT * rubRate
         const eurAmount = Number.parseFloat(amount) || 0
-        const usdtAmount = convertEurToUsdt(eurAmount)
+        const usdtBeforeMargin = eurAmount / realUsdEurRate
+        const margin = getUsdtMargin(eurAmount)
+        const usdtAmount = usdtBeforeMargin * (1 - margin)
         const rubAmount = usdtAmount * rubRate
         return rubAmount / eurAmount
       }

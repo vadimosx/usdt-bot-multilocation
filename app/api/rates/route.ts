@@ -112,10 +112,12 @@ export async function GET() {
       return { usdt, eur: parseFloat(eur.toFixed(1)), rate: parseFloat((eur / usdt).toFixed(4)) }
     })
 
-    // EUR → RUB (via EUR→USDT→RUB, same as calculator)
+    // EUR → RUB (raw Binance rate, no buyback, deduct margin, then * rubRate)
     const eurAmounts = [300, 500, 1000, 2000, 5000, 10000]
     const eurRubTable = eurAmounts.map((eur) => {
-      const usdt = convertEurToUsdt(eur, effectiveRate, usdtTiers)
+      const usdtBeforeMargin = eur / binanceRate
+      const margin = getMargin(usdtTiers, eur)
+      const usdt = usdtBeforeMargin * (1 - margin)
       const rub = usdt * rubRate
       return { eur, rub: parseFloat(rub.toFixed(1)), rate: parseFloat((rub / eur).toFixed(2)) }
     })
@@ -128,11 +130,11 @@ export async function GET() {
       return { rub, eur: parseFloat(eur.toFixed(1)), rate: parseFloat((rub / eur).toFixed(2)) }
     })
 
-    // Spot rates
-    const spot1000Eur = convertUsdtToEur(1000, effectiveRate, usdtTiers)
-    const spotRubFor1000Eur = convertEurToUsdt(1000, effectiveRate, usdtTiers) * rubRate
-    // RUB→EUR spot: 100000 RUB
-    const spot100kRubToEur = convertUsdtToEur(100000 / rubRate, effectiveRate, usdtTiers)
+    // Spot rates (для 1000 единиц)
+    const spot1000Eur = convertUsdtToEur(1000, effectiveRate, usdtTiers)                    // USDT→EUR
+    const spotEurToUsdt1000 = (1000 / binanceRate) * (1 - getMargin(usdtTiers, 1000))      // EUR→USDT
+    const spotEurToRub1000 = spotEurToUsdt1000 * rubRate                                    // EUR→RUB
+    const spot100kRubToEur = convertUsdtToEur(100000 / rubRate, effectiveRate, usdtTiers)  // RUB→EUR
 
     return NextResponse.json({
       location: activeLocation.name,
@@ -142,9 +144,10 @@ export async function GET() {
 
       // Spot rates
       rates: {
-        usdt_eur: parseFloat((spot1000Eur / 1000).toFixed(4)),        // 1 USDT = X EUR (для 1000 USDT)
-        eur_rub: parseFloat((spotRubFor1000Eur / 1000).toFixed(2)),   // 1 EUR = X RUB (EUR→RUB, для 1000 EUR)
-        rub_eur: parseFloat((100000 / spot100kRubToEur).toFixed(2)),  // 1 EUR = X RUB (RUB→EUR, для 100k RUB)
+        usdt_eur: parseFloat((spot1000Eur / 1000).toFixed(4)),           // USDT→EUR: 1 USDT = X EUR
+        eur_usdt: parseFloat((spotEurToUsdt1000 / 1000).toFixed(4)),     // EUR→USDT: 1 EUR = X USDT
+        eur_rub: parseFloat((spotEurToRub1000 / 1000).toFixed(2)),       // EUR→RUB: 1 EUR = X RUB
+        rub_eur: parseFloat((100000 / spot100kRubToEur).toFixed(2)),     // RUB→EUR: 1 EUR = X RUB
         eur_rsd: rsdRate > 0 ? parseFloat(rsdRate.toFixed(2)) : null,
       },
 
