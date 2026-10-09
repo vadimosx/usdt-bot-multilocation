@@ -14,10 +14,6 @@ RUN npm install --legacy-peer-deps
 # Копируем остальной код
 COPY . .
 
-# Локация вшивается в клиентский бандл на этапе сборки (NEXT_PUBLIC_*)
-ARG NEXT_PUBLIC_LOCATION
-ENV NEXT_PUBLIC_LOCATION=$NEXT_PUBLIC_LOCATION
-
 # Собираем проект
 RUN npm run build
 
