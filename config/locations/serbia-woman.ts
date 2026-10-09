@@ -15,6 +15,5 @@ export const serbiaWomanConfig: LocationConfig = {
   metaDescription: "Обмен USDT, EUR, RUB, RSD в Белграде",
   bgImage: "/images/belgrade-waterfront.jpg",
   heroImage: "/images/usdt-woman-hero.webp",
-  // TODO: заменить на реальный username нового бота (без @)
-  botUsername: "usdtwoman_serbia_bot",
+  botUsername: "usdt_woman_bot",
 }
