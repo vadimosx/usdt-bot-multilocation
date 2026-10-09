@@ -13,8 +13,7 @@ export const serbiaWomanConfig: LocationConfig = {
   subtitle: "Обмен криптовалют в Сербии",
   metaTitle: "USDT Woman - Обмен криптовалют в Сербии",
   metaDescription: "Обмен USDT, EUR, RUB, RSD в Белграде",
-  // TODO: положить public/images/usdt-woman-hero.png (PNG с прозрачным фоном, ~1024x1792) и поменять путь
-  heroImage: "/images/usdt-man-hero.png",
+  heroImage: "/images/usdt-woman-hero.webp",
   // TODO: заменить на реальный username нового бота (без @)
   botUsername: "usdtwoman_serbia_bot",
 }
