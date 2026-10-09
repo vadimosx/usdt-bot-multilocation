@@ -166,29 +166,29 @@ input[type="number"] {
  * USDT Woman theme
  * Включается через <html data-brand="woman"> (brand.theme в config/locations).
  * Компоненты используют классы green-* — здесь мы перекрашиваем палитру green
- * в розовую, поэтому сами компоненты менять не нужно.
+ * в бирюзовую (под костюм героини), поэтому сами компоненты менять не нужно.
  * ------------------------------------------------------------------ */
 [data-brand="woman"] {
-  --color-green-400: oklch(0.75 0.17 352);
-  --color-green-500: oklch(0.68 0.22 354);
-  --color-green-600: oklch(0.6 0.23 358);
+  --color-green-400: oklch(0.8 0.14 172);
+  --color-green-500: oklch(0.72 0.15 170);
+  --color-green-600: oklch(0.62 0.13 172);
 
-  --card: oklch(0.13 0.025 350);
-  --primary: oklch(0.68 0.22 354);
-  --secondary: oklch(0.16 0.025 350);
-  --muted: oklch(0.16 0.015 350);
-  --accent: oklch(0.68 0.22 354);
-  --border: oklch(0.24 0.03 350);
-  --input: oklch(0.13 0.025 350);
-  --ring: oklch(0.68 0.22 354 / 0.5);
-  --chart-1: oklch(0.68 0.22 354);
+  --card: oklch(0.13 0.02 180);
+  --primary: oklch(0.72 0.15 170);
+  --secondary: oklch(0.16 0.02 180);
+  --muted: oklch(0.16 0.015 180);
+  --accent: oklch(0.72 0.15 170);
+  --border: oklch(0.24 0.03 175);
+  --input: oklch(0.13 0.02 180);
+  --ring: oklch(0.72 0.15 170 / 0.5);
+  --chart-1: oklch(0.72 0.15 170);
 }
 
 [data-brand="woman"] .green-glow {
-  box-shadow: 0 0 24px rgba(236, 72, 153, 0.35);
+  box-shadow: 0 0 24px rgba(45, 212, 170, 0.35);
 }
 
 [data-brand="woman"] .glass-card {
-  background: rgba(40, 0, 20, 0.4);
-  border-color: rgba(244, 114, 182, 0.18);
+  background: rgba(0, 25, 22, 0.45);
+  border-color: rgba(45, 212, 170, 0.18);
 }
