@@ -11,9 +11,22 @@ export interface ExchangeDirection {
   banks: string[]
 }
 
+export type BrandTheme = "man" | "woman"
+
+export interface Brand {
+  /** Brand name in texts, e.g. "USDT Man" */
+  name: string
+  /** Big title on the main page, e.g. "USDT MAN" */
+  title: string
+  /** Visual theme, switched via <html data-brand="..."> in globals.css */
+  theme: BrandTheme
+}
+
 export interface LocationConfig {
   /** Internal location key, e.g. "serbia" */
   key: string
+  /** Brand (name + visual theme). Defaults to USDT Man */
+  brand: Brand
   /** Display name in Russian, e.g. "Сербия" */
   name: string
   /** Subtitle on the main page */

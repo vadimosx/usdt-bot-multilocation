@@ -161,3 +161,34 @@ input[type="number"] {
   -webkit-appearance: none;
   margin: 0;
 }
+
+/* ------------------------------------------------------------------
+ * USDT Woman theme
+ * Включается через <html data-brand="woman"> (brand.theme в config/locations).
+ * Компоненты используют классы green-* — здесь мы перекрашиваем палитру green
+ * в розовую, поэтому сами компоненты менять не нужно.
+ * ------------------------------------------------------------------ */
+[data-brand="woman"] {
+  --color-green-400: oklch(0.75 0.17 352);
+  --color-green-500: oklch(0.68 0.22 354);
+  --color-green-600: oklch(0.6 0.23 358);
+
+  --card: oklch(0.13 0.025 350);
+  --primary: oklch(0.68 0.22 354);
+  --secondary: oklch(0.16 0.025 350);
+  --muted: oklch(0.16 0.015 350);
+  --accent: oklch(0.68 0.22 354);
+  --border: oklch(0.24 0.03 350);
+  --input: oklch(0.13 0.025 350);
+  --ring: oklch(0.68 0.22 354 / 0.5);
+  --chart-1: oklch(0.68 0.22 354);
+}
+
+[data-brand="woman"] .green-glow {
+  box-shadow: 0 0 24px rgba(236, 72, 153, 0.35);
+}
+
+[data-brand="woman"] .glass-card {
+  background: rgba(40, 0, 20, 0.4);
+  border-color: rgba(244, 114, 182, 0.18);
+}

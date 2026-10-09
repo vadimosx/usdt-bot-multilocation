@@ -68,12 +68,12 @@ export default function USDTManApp() {
 
         <div className="relative h-[420px] overflow-hidden">
           <div className="absolute top-0 left-1/2 transform -translate-x-1/2 z-10">
-            <h1 className="text-3xl font-bold text-white text-center whitespace-nowrap">USDT MAN</h1>
+            <h1 className="text-3xl font-bold text-white text-center whitespace-nowrap">{activeLocation.brand.title}</h1>
           </div>
 
           <img
             src={activeLocation.heroImage}
-            alt="USDT Man Superhero"
+            alt={`${activeLocation.brand.name} Superhero`}
             className="w-[375px] h-[375px] mx-auto object-contain drop-shadow-2xl green-glow -mt-8"
           />
 

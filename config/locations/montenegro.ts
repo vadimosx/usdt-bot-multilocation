@@ -1,9 +1,11 @@
 import type { LocationConfig } from "../types"
+import { USDT_MAN } from "../brands"
 
 const RUB_BANKS = ["Сбербанк", "Райффайзен", "Тинькофф", "Наличные рубли", "Другие банки"]
 
 export const montenegroConfig: LocationConfig = {
   key: "montenegro",
+  brand: USDT_MAN,
   name: "Черногория",
   subtitle: "Обмен криптовалют в Черногории",
   metaTitle: "USDT Man - Обмен криптовалют в Черногории",

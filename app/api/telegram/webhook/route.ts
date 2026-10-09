@@ -42,7 +42,7 @@ function getSystemPrompt(): string {
   const cities = activeLocation.cities.map((c) => c.name).join(", ")
   const botUsername = activeLocation.botUsername
 
-  return `Ты — вежливый помощник обменного пункта USDT Man (${location}).
+  return `Ты — вежливый помощник обменного пункта ${activeLocation.brand.name} (${location}).
 Отвечай кратко, по делу, на том языке на котором пишет пользователь (русский или английский).
 
 ИНФОРМАЦИЯ ОБ ОБМЕННИКЕ:
@@ -141,7 +141,7 @@ export async function POST(request: Request) {
         const welcomeGif = `${appUrl}/images/welcome.mp4`
         const welcomeText =
           `👋 Привет, <b>${escapeHtml(firstName)}</b>!\n\n` +
-          `Я помощник обменника <b>USDT Man ${activeLocation.name}</b>.\n\n` +
+          `Я помощник обменника <b>${activeLocation.brand.name} ${activeLocation.name}</b>.\n\n` +
           `💱 Обмен USDT, EUR${activeLocation.currencies.find(c => c.value === "RUB") ? ", RUB" : ""} наличными\n` +
           `📍 Города: ${activeLocation.cities.map(c => c.name).join(", ")}\n` +
           `⏰ Работаем: 8:00 — 22:00\n\n` +
