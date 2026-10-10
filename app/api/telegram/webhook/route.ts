@@ -138,7 +138,10 @@ export async function POST(request: Request) {
       // /start command
       if (text === "/start") {
         const appUrl = process.env.NEXT_PUBLIC_APP_URL || `https://app.usdtman.com`
-        const welcomeGif = `${appUrl}/images/welcome.mp4`
+        // WELCOME_VERSION: поменять число в .env после замены welcome.mp4,
+        // иначе Telegram продолжит показывать закэшированную старую анимацию
+        const welcomeVersion = process.env.WELCOME_VERSION
+        const welcomeGif = `${appUrl}/images/welcome.mp4${welcomeVersion ? `?v=${encodeURIComponent(welcomeVersion)}` : ""}`
         const welcomeText =
           `👋 Привет, <b>${escapeHtml(firstName)}</b>!\n\n` +
           `Я помощник обменника <b>${activeLocation.brand.name} ${activeLocation.name}</b>.\n\n` +
